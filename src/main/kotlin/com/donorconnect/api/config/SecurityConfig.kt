@@ -1,14 +1,19 @@
 package com.donorconnect.api.config
 
+import com.donorconnect.api.security.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
 @Configuration
-class SecurityConfig {
+class SecurityConfig (
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter
+) {
 
     @Bean
     fun passwordEncoder(): PasswordEncoder {
@@ -22,14 +27,18 @@ class SecurityConfig {
             // CSRF protection is for browser-based apps. Since we are building a stateless REST API for Android, we turn it off.
             .csrf { it.disable() }
 
-            // 2. Configure Endpoint Permissions
+            // CRITICAL ADDITION: Tell Spring NOT to use server-side sessions (cookies).
+            // We want it to be 100% stateless because we are using JWTs.
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+
             .authorizeHttpRequests { auth ->
                 auth
-                    // Leave the auth folder public so users can actually register and login
                     .requestMatchers("/api/v1/auth/**").permitAll()
-                    // Require authentication (a valid JWT, eventually) for everything else
                     .anyRequest().authenticated()
             }
+
+            // Tell Spring to run our JWT filter BEFORE its standard username/password filter
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
     }

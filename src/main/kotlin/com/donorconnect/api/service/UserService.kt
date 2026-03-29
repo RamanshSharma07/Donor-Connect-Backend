@@ -7,6 +7,9 @@ import com.donorconnect.api.model.User
 import com.donorconnect.api.repository.DonorRepository
 import com.donorconnect.api.repository.RecipientRepository
 import com.donorconnect.api.repository.UserRepository
+import com.donorconnect.api.security.JwtUtil
+import com.donorconnect.api.v1.dto.LoginRequest
+import com.donorconnect.api.v1.dto.LoginResponse
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -17,7 +20,8 @@ class UserService(
     private val userRepository: UserRepository,
     private val donorRepository: DonorRepository,
     private val recipientRepository: RecipientRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtUtil: JwtUtil
 ) {
 
     // @Transactional ensures that if saving the Donor/Recipient fails,
@@ -71,5 +75,27 @@ class UserService(
         }
 
         return savedUser
+    }
+
+    fun loginUser(request: LoginRequest): LoginResponse {
+        // 1. Find the user by email
+        val user = userRepository.findByEmail(request.email)
+            ?: throw IllegalArgumentException("Invalid email or password.") // Vague error is a security best practice!
+
+        // 2. Check if the password matches the hashed password in the database
+        if (!passwordEncoder.matches(request.password, user.password)) {
+            throw IllegalArgumentException("Invalid email or password.")
+        }
+
+        // 3. Generate the JWT
+        val token = jwtUtil.generateToken(user.email, user.role)
+
+        // 4. Return the token and basic user info to the Android app
+        return LoginResponse(
+            token = token,
+            userId = user.userId,
+            name = user.name,
+            role = user.role
+        )
     }
 }

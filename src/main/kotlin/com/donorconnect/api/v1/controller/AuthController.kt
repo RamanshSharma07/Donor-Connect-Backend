@@ -1,6 +1,7 @@
 package com.donorconnect.api.v1.controller
 
 import com.donorconnect.api.service.UserService
+import com.donorconnect.api.v1.dto.LoginRequest
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -31,6 +32,23 @@ class AuthController(
             // Catch-all for any other server errors
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 mapOf("error" to "An unexpected error occurred during registration.")
+            )
+        }
+    }
+
+    @PostMapping("/login")
+    fun login(@RequestBody request: LoginRequest): ResponseEntity<Any> {
+        return try {
+            val response = userService.loginUser(request)
+            ResponseEntity.ok(response) // Returns an HTTP 200 OK with the token payload
+        } catch (e: IllegalArgumentException) {
+            // Returns a 401 Unauthorized if the email/password is wrong
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                mapOf("error" to e.message)
+            )
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf("error" to "An unexpected error occurred during login.")
             )
         }
     }
