@@ -1,4 +1,4 @@
-package com.donorconnect.api.v1.database.repository
+package com.donorconnect.api.repository
 
 import com.donorconnect.api.model.Donor
 import org.springframework.data.jpa.repository.JpaRepository
