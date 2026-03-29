@@ -10,6 +10,7 @@ import com.donorconnect.api.repository.UserRepository
 import com.donorconnect.api.security.JwtUtil
 import com.donorconnect.api.v1.dto.LoginRequest
 import com.donorconnect.api.v1.dto.LoginResponse
+import com.donorconnect.api.v1.dto.UserProfileResponse
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -67,9 +68,7 @@ class UserService(
 
             val newRecipient = Recipient(
                 user = savedUser,
-                bloodGroup = request.bloodGroup,
-                contact = request.contact,
-                location = request.location
+                bloodGroup = request.bloodGroup
             )
             recipientRepository.save(newRecipient)
         }
@@ -97,5 +96,46 @@ class UserService(
             name = user.name,
             role = user.role
         )
+    }
+
+    fun getUserProfile(email: String): UserProfileResponse {
+        // 1. Fetch the core User details
+        val user = userRepository.findByEmail(email)
+            ?: throw IllegalArgumentException("User not found.")
+
+        // 2. Check if they have a Donor profile
+        val donor = donorRepository.findByUser_UserId(user.userId)
+
+        if (donor != null) {
+            // They are a Donor! Return all their donor-specific fields.
+            return UserProfileResponse(
+                userId = user.userId,
+                name = user.name,
+                email = user.email,
+                contact = user.contact,
+                location = user.location,
+                role = user.role,
+                isDonor = true,
+                bloodGroup = donor.bloodGroup,
+                age = donor.age,
+                gender = donor.gender,
+                isAvailable = donor.isAvailable,
+                lastDonationDate = donor.lastDonationDate
+            )
+        } else {
+            // 3. Not a donor? Fetch their Recipient profile instead.
+            val recipient = recipientRepository.findByUser_UserId(user.userId)
+
+            return UserProfileResponse(
+                userId = user.userId,
+                name = user.name,
+                email = user.email,
+                contact = user.contact,
+                location = user.location,
+                role = user.role,
+                isDonor = false,
+                bloodGroup = recipient?.bloodGroup // Safe call in case data is missing
+            )
+        }
     }
 }

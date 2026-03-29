@@ -16,12 +16,6 @@ class Recipient(
     var user: User,
 
     @Column(name = "bloodgroup", nullable = false, length = 5)
-    var bloodGroup: String,
-
-    @Column(nullable = false, length = 20)
-    var contact: String,
-
-    @Column(nullable = false, length = 200)
-    var location: String
+    var bloodGroup: String
 ): BaseAuditableEntity()
 
