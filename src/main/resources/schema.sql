@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS Users (
     Role VARCHAR(20) DEFAULT 'user',
     Contact VARCHAR(20) NOT NULL,
     Location VARCHAR(200) NOT NULL,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -84,4 +85,14 @@ CREATE TABLE IF NOT EXISTS Verification (
     VerifiedOn TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE otp_tokens (
+    otpid SERIAL PRIMARY KEY,
+    otp_code VARCHAR(6) NOT NULL,
+    expiration_time TIMESTAMP NOT NULL,
+    userid INT NOT NULL UNIQUE, -- Unique because one user = one active OTP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_otp FOREIGN KEY (userid) REFERENCES users(userid) ON DELETE CASCADE
 );

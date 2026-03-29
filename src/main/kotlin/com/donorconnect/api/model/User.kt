@@ -26,5 +26,9 @@ class User(
     var contact: String,
 
     @Column(nullable = false, length = 200)
-    var location: String
+    var location: String,
+
+    // Add this inside the User class parameters
+    @Column(name = "is_verified", nullable = false)
+    var isVerified: Boolean = false
 ): BaseAuditableEntity()

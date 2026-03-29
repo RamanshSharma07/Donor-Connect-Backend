@@ -22,7 +22,8 @@ class UserService(
     private val donorRepository: DonorRepository,
     private val recipientRepository: RecipientRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtUtil: JwtUtil
+    private val jwtUtil: JwtUtil,
+    private val otpService: OtpService
 ) {
 
     // @Transactional ensures that if saving the Donor/Recipient fails,
@@ -72,6 +73,9 @@ class UserService(
             )
             recipientRepository.save(newRecipient)
         }
+
+        // Generate and send the verification email in the background
+        otpService.generateAndSendOtp(savedUser)
 
         return savedUser
     }

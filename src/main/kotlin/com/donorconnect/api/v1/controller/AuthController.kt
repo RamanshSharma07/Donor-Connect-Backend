@@ -1,8 +1,10 @@
 package com.donorconnect.api.v1.controller
 
+import com.donorconnect.api.service.OtpService
 import com.donorconnect.api.service.UserService
 import com.donorconnect.api.v1.dto.LoginRequest
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
+import com.donorconnect.api.v1.dto.VerifyOtpRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -10,7 +12,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/auth")
 class AuthController(
-    private val userService: UserService
+    private val userService: UserService,
+    private val otpService: OtpService
 ) {
 
     @PostMapping("/register")
@@ -49,6 +52,26 @@ class AuthController(
         } catch (e: Exception) {
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 mapOf("error" to "An unexpected error occurred during login.")
+            )
+        }
+    }
+
+    @PostMapping("/verify-email")
+    fun verifyEmail(@RequestBody request: VerifyOtpRequest): ResponseEntity<Any> {
+        return try {
+            otpService.verifyOtp(request.email, request.otpCode)
+
+            ResponseEntity.ok(
+                mapOf("message" to "Email successfully verified!")
+            )
+        } catch (e: IllegalArgumentException) {
+            // Return a 400 Bad Request if the OTP is wrong or expired
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                mapOf("error" to e.message)
+            )
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf("error" to "An unexpected error occurred during verification.")
             )
         }
     }
