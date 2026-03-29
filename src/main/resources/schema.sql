@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS Verification (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE otp_tokens (
+CREATE TABLE IF NOT EXISTS otp_tokens (
     otpid SERIAL PRIMARY KEY,
     otp_code VARCHAR(6) NOT NULL,
     expiration_time TIMESTAMP NOT NULL,

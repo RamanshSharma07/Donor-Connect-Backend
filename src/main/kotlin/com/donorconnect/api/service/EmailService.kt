@@ -24,4 +24,20 @@ class EmailService(
 
         mailSender.send(message)
     }
+
+    fun sendPasswordResetEmail(toEmail: String, otpCode: String) {
+        val message = SimpleMailMessage()
+        message.from = "noreply@donorconnect.com"
+        message.setTo(toEmail)
+        message.subject = "OTP to Reset Your DonorConnect Password"
+        message.text = """
+            We received a request to reset your password.
+            
+            Your password reset code is: $otpCode
+            
+            This code will expire in 15 minutes. If you did not request a password reset, please ignore this email.
+        """.trimIndent()
+
+        mailSender.send(message)
+    }
 }

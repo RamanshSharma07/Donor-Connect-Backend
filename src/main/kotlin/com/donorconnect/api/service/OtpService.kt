@@ -78,4 +78,26 @@ class OtpService(
 
         return true
     }
+
+    @Transactional
+    fun generateAndSendPasswordResetOtp(user: User) {
+        val otpCode = Random.nextInt(100000, 999999).toString()
+        val existingToken = otpTokenRepository.findByUser_UserId(user.userId)
+
+        if (existingToken != null) {
+            existingToken.otpCode = otpCode
+            existingToken.expirationTime = LocalDateTime.now().plusMinutes(15)
+            otpTokenRepository.save(existingToken)
+        } else {
+            val newToken = OtpToken(
+                otpCode = otpCode,
+                expirationTime = LocalDateTime.now().plusMinutes(15),
+                user = user
+            )
+            otpTokenRepository.save(newToken)
+        }
+
+        // Call the NEW email template
+        emailService.sendPasswordResetEmail(user.email, otpCode)
+    }
 }

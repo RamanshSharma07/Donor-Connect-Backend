@@ -2,7 +2,9 @@ package com.donorconnect.api.v1.controller
 
 import com.donorconnect.api.service.OtpService
 import com.donorconnect.api.service.UserService
+import com.donorconnect.api.v1.dto.ForgotPasswordRequest
 import com.donorconnect.api.v1.dto.LoginRequest
+import com.donorconnect.api.v1.dto.ResetPasswordRequest
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import com.donorconnect.api.v1.dto.VerifyOtpRequest
 import org.springframework.http.HttpStatus
@@ -72,6 +74,29 @@ class AuthController(
         } catch (e: Exception) {
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 mapOf("error" to "An unexpected error occurred during verification.")
+            )
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    fun forgotPassword(@RequestBody request: ForgotPasswordRequest): ResponseEntity<Any> {
+        // We always return OK so hackers can't use this endpoint to check if an email is registered
+        userService.forgotPassword(request)
+        return ResponseEntity.ok(
+            mapOf("message" to "If an account with that email exists, a reset code has been sent.")
+        )
+    }
+
+    @PostMapping("/reset-password")
+    fun resetPassword(@RequestBody request: ResetPasswordRequest): ResponseEntity<Any> {
+        return try {
+            userService.resetPassword(request)
+            ResponseEntity.ok(mapOf("message" to "Password successfully reset! You can now log in."))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to e.message))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf("error" to "An unexpected error occurred.")
             )
         }
     }

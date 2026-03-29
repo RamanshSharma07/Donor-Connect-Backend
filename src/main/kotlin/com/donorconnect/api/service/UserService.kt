@@ -8,8 +8,10 @@ import com.donorconnect.api.repository.DonorRepository
 import com.donorconnect.api.repository.RecipientRepository
 import com.donorconnect.api.repository.UserRepository
 import com.donorconnect.api.security.JwtUtil
+import com.donorconnect.api.v1.dto.ForgotPasswordRequest
 import com.donorconnect.api.v1.dto.LoginRequest
 import com.donorconnect.api.v1.dto.LoginResponse
+import com.donorconnect.api.v1.dto.ResetPasswordRequest
 import com.donorconnect.api.v1.dto.UserProfileResponse
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -37,13 +39,13 @@ class UserService(
         }
 
         // 2. Hash the password before saving
-        val hashedPassword = passwordEncoder.encode(request.password)
+        val hashedPassword = passwordEncoder.encode(request.password).toString()
 
         // 3. Create and save the main User profile
         val newUser = User(
             name = request.name,
             email = request.email,
-            password = hashedPassword!!,
+            password = hashedPassword,
             contact = request.contact,
             location = request.location,
             role = "user" // Default role
@@ -141,5 +143,26 @@ class UserService(
                 bloodGroup = recipient?.bloodGroup // Safe call in case data is missing
             )
         }
+    }
+
+    fun forgotPassword(request: ForgotPasswordRequest) {
+        // If the email doesn't exist, we fail silently to prevent hackers from guessing emails.
+        val user = userRepository.findByEmail(request.email) ?: return
+
+        otpService.generateAndSendPasswordResetOtp(user)
+    }
+
+    @Transactional
+    fun resetPassword(request: ResetPasswordRequest) {
+        // 1. Verify the OTP (this will throw an error if it's invalid or expired)
+        otpService.verifyOtp(request.email, request.otpCode)
+
+        // 2. Find the user
+        val user = userRepository.findByEmail(request.email)
+            ?: throw IllegalArgumentException("User not found.")
+
+        // 3. Hash the new password and save it
+        user.password = passwordEncoder.encode(request.newPassword).toString()
+        userRepository.save(user)
     }
 }
