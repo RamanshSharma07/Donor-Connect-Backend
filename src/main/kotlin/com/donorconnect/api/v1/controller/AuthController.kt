@@ -4,6 +4,7 @@ import com.donorconnect.api.service.OtpService
 import com.donorconnect.api.service.UserService
 import com.donorconnect.api.v1.dto.ForgotPasswordRequest
 import com.donorconnect.api.v1.dto.LoginRequest
+import com.donorconnect.api.v1.dto.ResendVerificationRequest
 import com.donorconnect.api.v1.dto.ResetPasswordRequest
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import com.donorconnect.api.v1.dto.VerifyOtpRequest
@@ -106,6 +107,32 @@ class AuthController(
             ResponseEntity.ok(mapOf("message" to "Password successfully reset! You can now log in."))
         } catch (e: IllegalArgumentException) {
             ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf("error" to e.message))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf("error" to "An unexpected error occurred.")
+            )
+        }
+    }
+
+    @PostMapping("/resend-verification")
+    fun resendVerification(@RequestBody request: ResendVerificationRequest): ResponseEntity<Any> {
+        return try {
+            userService.resendVerificationEmail(request.email)
+
+            ResponseEntity.ok(
+                mapOf("message" to "A new verification code has been sent to your email.")
+            )
+        } catch (e: IllegalArgumentException) {
+            // Determine the correct error status based on the message
+            val status = if (e.message?.contains("already verified") == true) {
+                HttpStatus.CONFLICT // 409
+            } else {
+                HttpStatus.NOT_FOUND // 404
+            }
+
+            ResponseEntity.status(status).body(
+                mapOf("error" to e.message)
+            )
         } catch (e: Exception) {
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 mapOf("error" to "An unexpected error occurred.")

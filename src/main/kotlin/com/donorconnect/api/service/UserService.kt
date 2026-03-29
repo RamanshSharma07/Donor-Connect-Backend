@@ -12,6 +12,7 @@ import com.donorconnect.api.v1.dto.ForgotPasswordRequest
 import com.donorconnect.api.v1.dto.LoginRequest
 import com.donorconnect.api.v1.dto.LoginResponse
 import com.donorconnect.api.v1.dto.ResetPasswordRequest
+import com.donorconnect.api.v1.dto.UpdateProfileRequest
 import com.donorconnect.api.v1.dto.UserProfileResponse
 import com.donorconnect.api.v1.dto.UserRegistrationRequest
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -164,5 +165,48 @@ class UserService(
         // 3. Hash the new password and save it
         user.password = passwordEncoder.encode(request.newPassword).toString()
         userRepository.save(user)
+    }
+
+    fun resendVerificationEmail(email: String) {
+        // 1. Find the user
+        val user = userRepository.findByEmail(email)
+            ?: throw IllegalArgumentException("Email not registered.")
+
+        // 2. Check if they actually need a code
+        if (user.isVerified) {
+            throw IllegalArgumentException("This account is already verified. You can log in.")
+        }
+
+        // 3. Generate and send the new OTP
+        // (This safely overwrites their old token thanks to the logic we wrote earlier!)
+        otpService.generateAndSendOtp(user)
+    }
+
+    @Transactional
+    fun updateUserProfile(email: String, request: UpdateProfileRequest) {
+        // 1. Fetch the authenticated user
+        val user = userRepository.findByEmail(email)
+            ?: throw IllegalArgumentException("User not found.")
+
+        // 2. Update common fields if the app sent them
+        if (request.contact != null) {
+            user.contact = request.contact
+        }
+        if (request.location != null) {
+            user.location = request.location
+        }
+        userRepository.save(user)
+
+        // 3. If they are a Donor, update their specific medical fields
+        val donor = donorRepository.findByUser_UserId(user.userId)
+        if (donor != null) {
+            if (request.isAvailable != null) {
+                donor.isAvailable = request.isAvailable
+            }
+            if (request.lastDonationDate != null) {
+                donor.lastDonationDate = request.lastDonationDate
+            }
+            donorRepository.save(donor)
+        }
     }
 }
