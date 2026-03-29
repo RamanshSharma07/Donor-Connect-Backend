@@ -146,8 +146,8 @@ class UserService(
     }
 
     fun forgotPassword(request: ForgotPasswordRequest) {
-        // If the email doesn't exist, we fail silently to prevent hackers from guessing emails.
-        val user = userRepository.findByEmail(request.email) ?: return
+        val user = userRepository.findByEmail(request.email)
+            ?: throw IllegalArgumentException("Email not registered.")
 
         otpService.generateAndSendPasswordResetOtp(user)
     }

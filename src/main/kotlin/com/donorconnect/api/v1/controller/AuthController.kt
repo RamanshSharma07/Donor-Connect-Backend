@@ -80,11 +80,23 @@ class AuthController(
 
     @PostMapping("/forgot-password")
     fun forgotPassword(@RequestBody request: ForgotPasswordRequest): ResponseEntity<Any> {
-        // We always return OK so hackers can't use this endpoint to check if an email is registered
-        userService.forgotPassword(request)
-        return ResponseEntity.ok(
-            mapOf("message" to "If an account with that email exists, a reset code has been sent.")
-        )
+        return try {
+            userService.forgotPassword(request)
+            // 1. If we get here, the email exists. Android can redirect to the OTP screen!
+            ResponseEntity.ok(
+                mapOf("message" to "An OTP has been sent to your email.")
+            )
+        } catch (e: IllegalArgumentException) {
+            // 2. If the email doesn't exist, tell Android so it can show the "Register" button!
+            // Using 404 NOT FOUND is the standard HTTP status for this scenario.
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                mapOf("error" to "Email not registered. Please create an account.")
+            )
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf("error" to "An unexpected error occurred.")
+            )
+        }
     }
 
     @PostMapping("/reset-password")
